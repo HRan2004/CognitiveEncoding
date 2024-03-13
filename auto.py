@@ -12,11 +12,15 @@ def update_column(df, index):
     for i in range(index - 6, index):
         if i < 0:
             continue
-        history += df.loc[i]['Value'] + ' - Predict: ' + df.loc[i]['predict'] + '\n'
+        if str(df.loc[i]['Value']) == '':
+            continue
+        history += str(df.loc[i]['Value']) + ' - Predict: ' + str(df.loc[i]['predict']) + '\n'
     if history == '':
         history = '无上文'
     try:
-        response = call_model(row['Value'], history)
+        text = df.loc[index]['Value']
+        print(f'Task {index}:\n{text}\nHistory:\n{history}\n')
+        response = call_model(text, history)
         if response == 'ERROR':
             result = 'ORIGIN_ERROR'
         else:
@@ -38,28 +42,34 @@ def update_column(df, index):
                 result = 'PARSE_ERROR'
                 print(e)
     except Exception as e:
-        result = 'NETWORK_ERROR'
+        result = 'UNKNOWN_ERROR'
         print(e)
     df.at[index, 'info'] = result
+    try:
+        df.to_excel('./marked/result.xlsx')
+    except:
+        print('Warning: save error')
     global wait_number
     wait_number -= 1
 
 
 if __name__ == '__main__':
-    num = 3
+    num = -1
     print('\n')
     df = pd.read_excel('./middle/output/text_video.xlsx')
     df['predict'] = pd.NA
     df['info'] = pd.NA
     for index, row in df.iterrows():
+        if index < 6:
+            continue
         if 'Value' in row:
             wait_number += 1
             # Thread(target=update_column, args=(df, index)).start()
             update_column(df, index)
-            time.sleep(0.2)
+            time.sleep(0.4)
         if 0 <= num <= index + 1:
             break
     while wait_number > 0:
         time.sleep(0.1)
-    # df.to_excel('./marked/result.xlsx', index=False)
+    df.to_excel('./marked/result.xlsx')
     print('\nAll Data Saved.')

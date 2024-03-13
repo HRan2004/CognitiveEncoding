@@ -1,6 +1,7 @@
 import openai
 from http import HTTPStatus
 import httpx
+from dashscope import Generation
 
 
 system_prompt = '''
@@ -36,7 +37,7 @@ user_prompt = f'''
 
 
 请你现在上方标注好的数据中寻找类似的话术，如果有，说出他的编号内容以及结果。
-然后请注意历史文本信息，在一个时间段内，师生的行为分类不会很频繁的变动。说出历史行为与当前话术是否有关。
+然后请注意历史文本信息，由于每一条信息只有10s时间但场景中师生的行为状态不会频繁发生改变。所以大概率本次的结果会与上次相同，请注意到明确的行为变更后，再给出与之前历史中不同的结果。
 然后说出其中的文本分别来自于谁说的话，他们在讨论什么内容，做出详细的思考和解释，最后给出你的答案。
 注意请必须在你的回答的最后，重复你的最终答案。
 '''
@@ -53,30 +54,37 @@ client = openai.OpenAI(
 
 with open('./datasets/clean/all_text.txt', encoding='utf-8') as f:
     all_text = f.read()
+    if len(all_text) > 20000:
+        all_text = all_text[:20000]
     user_prompt = user_prompt.replace('[DATA]', all_text)
     f.close()
 
 
 def call_model(text='', history=''):
-    print('\nTask:')
-    print(text)
-    print(history)
     messages = [{'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_prompt.replace('[TEXT]', text)}]
-    stream = client.chat.completions.create(
-      model="gpt-4",
-      messages=messages,
-      stream=True,
+
+    responses = Generation.call(
+        'qwen-plus',
+        messages=messages,
+        result_format='message',  # set the result to be "message" format.
+        stream=True,
+        incremental_output=True  # get streaming output incrementally
     )
-    text = ''
-    for chunk in stream:
-        if chunk.choices[0].delta.content is not None:
-            content = chunk.choices[0].delta.content
-            text += content
-            print(content, end="")
-    if len(text) > 0:
-        return text
-    return 'ERROR'
+    full_content = ''  # with incrementally we need to merge output.
+    for response in responses:
+        if response.status_code == HTTPStatus.OK:
+            content = response.output.choices[0]['message']['content']
+            full_content += content
+            print(content, end='')
+        else:
+            print('Request id: %s, Status code: %s, error code: %s, error message: %s' % (
+                response.request_id, response.status_code,
+                response.code, response.message
+            ))
+    if len(full_content) == 0:
+        full_content = 'ERROR'
+    return full_content
 
 
 

@@ -1,3 +1,8 @@
 
 # IDE
 .idea
+__pycache__
+bert/__pycache__
+
+# Base Weights
+bert/bert-base-chinese

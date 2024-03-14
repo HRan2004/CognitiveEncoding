@@ -1,3 +1,5 @@
+import time
+
 import openai
 from http import HTTPStatus
 import httpx
@@ -36,8 +38,11 @@ user_prompt = f'''
 [TEXT]
 
 
-请你现在上方标注好的数据中寻找类似的话术，如果有，说出他的编号内容以及结果。
-然后请注意历史文本信息，由于每一条信息只有10s时间但场景中师生的行为状态不会频繁发生改变。所以大概率本次的结果会与上次相同，请注意到明确的行为变更后，再给出与之前历史中不同的结果。
+请先注意提供的历史文本信息，由于每一条信息只有10s时间但场景中师生的行为状态不会频繁发生改变。
+所以大概率本次的结果会与上次相同，请注意到明确的行为变更后，再给出与之前历史中不同的结果。
+请先说出历史对话中的内容，以及描述之前是在干什么，和当前这句话是否有联系。
+
+然后在参考已标注数据，在上方标注好的数据中寻找类似的话术，如果有说出他的编号内容以及结果，仅用于参考。
 然后说出其中的文本分别来自于谁说的话，他们在讨论什么内容，做出详细的思考和解释，最后给出你的答案。
 注意请必须在你的回答的最后，重复你的最终答案。
 '''
@@ -60,12 +65,18 @@ with open('./datasets/clean/all_text.txt', encoding='utf-8') as f:
     f.close()
 
 
+last_call_time = 0
+
+
 def call_model(text='', history=''):
     messages = [{'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_prompt.replace('[TEXT]', text)}]
-
+    global last_call_time
+    while time.time() - last_call_time < 61:
+        time.sleep(0.1)
+    last_call_time = time.time()
     responses = Generation.call(
-        'qwen-plus',
+        'qwen-max-longcontext',
         messages=messages,
         result_format='message',  # set the result to be "message" format.
         stream=True,

@@ -69,8 +69,8 @@ def train(model, train_data, val_data, learning_rate, epochs, batch_size, augmen
 
     print(
       f'''Epochs: {epoch_num + 1} 
-              | Train Loss: {total_loss_train / len(train_data): .3f} 
-              | Train Accuracy: {total_acc_train / len(train_data): .3f} 
-              | Val Loss: {total_loss_val / len(val_data): .3f} 
-              | Val Accuracy: {total_acc_val / len(val_data): .3f}''')
+ | Train Loss: {total_loss_train / len(train_data): .3f} 
+ | Train Accuracy: {total_acc_train / len(train_data): .3f} 
+ | Val Loss: {total_loss_val / len(val_data): .3f} 
+ | Val Accuracy: {total_acc_val / len(val_data): .3f}''')
 

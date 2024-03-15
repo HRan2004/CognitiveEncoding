@@ -6,6 +6,7 @@ directory_path = './source'
 
 # 创建一个空的DataFrame用于存储所有数据
 combined_df = pd.DataFrame()
+combined_df['filename'] = None
 
 # 遍历目录下的所有文件
 for filename in os.listdir(directory_path):
@@ -17,13 +18,14 @@ for filename in os.listdir(directory_path):
         except ValueError:
             df = pd.read_excel(file_path, usecols=['Key', 'Value', 'table'])
             df['divergence'] = None
+        df['filename'] = filename
         combined_df = pd.concat([combined_df, df], ignore_index=True)
 
 # 输出合并后的数据到一个新的Excel文件
 output_file_path = os.path.join('./clean/all_data.xlsx')
 combined_df.to_excel(output_file_path)
 
-print('Combined Finshed:', output_file_path)
+print('Combined Finished:', output_file_path)
 
 all_text = ''
 for index, row in combined_df.iterrows():

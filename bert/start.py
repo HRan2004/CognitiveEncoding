@@ -6,7 +6,7 @@ from bert.train import train
 import pandas as pd
 
 EPOCHS = 10
-LR = 1e-6
+LR = 1e-5
 BATCH_SIZE = 64
 BASE_PATH = './chinese-lert-large'
 

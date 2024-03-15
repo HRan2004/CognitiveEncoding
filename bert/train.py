@@ -31,7 +31,6 @@ def train(model, train_data, val_data, learning_rate, epochs, batch_size, augmen
     total_loss_train = 0
     # 进度条函数tqdm
     for train_input, train_label in tqdm(train_dataloader):
-      print(train_input, train_label)
       train_label = train_label.to(device)
       mask = train_input['attention_mask'].to(device)
       input_id = train_input['input_ids'].squeeze(1).to(device)
@@ -41,7 +40,7 @@ def train(model, train_data, val_data, learning_rate, epochs, batch_size, augmen
       batch_loss = criterion(output, train_label)
       total_loss_train += batch_loss.item()
       # 计算精度
-      acc = (output.argmax(dim=1) == train_label).sum().item()
+      acc = (output.argmax(dim=1) == train_label.argmax(dim=1)).sum().item()
       total_acc_train += acc
       # 模型更新
       model.zero_grad()
@@ -65,13 +64,13 @@ def train(model, train_data, val_data, learning_rate, epochs, batch_size, augmen
         batch_loss = criterion(output, val_label)
         total_loss_val += batch_loss.item()
 
-        acc = (output.argmax(dim=1) == val_label).sum().item()
+        acc = (output.argmax(dim=1) == val_label.argmax(dim=1)).sum().item()
         total_acc_val += acc
 
     print(
       f'''Epochs: {epoch_num + 1} 
-              | Train Loss: {total_loss_train / len(train_data): .3f} 
-              | Train Accuracy: {total_acc_train / len(train_data): .3f} 
-              | Val Loss: {total_loss_val / len(val_data): .3f} 
-              | Val Accuracy: {total_acc_val / len(val_data): .3f}''')
+ | Train Loss: {total_loss_train / len(train_data): .3f} 
+ | Train Accuracy: {total_acc_train / len(train_data): .3f} 
+ | Val Loss: {total_loss_val / len(val_data): .3f} 
+ | Val Accuracy: {total_acc_val / len(val_data): .3f}''')
 

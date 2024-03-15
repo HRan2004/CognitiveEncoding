@@ -6,4 +6,4 @@ bert/__pycache__
 
 # Base Weights
 bert/bert-base-chinese
-/bert/chinese-lert-large
+bert/chinese-lert-large

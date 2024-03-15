@@ -5,10 +5,10 @@ from bert.model import BertClassifier
 from bert.train import train
 import pandas as pd
 
-EPOCHS = 5
+EPOCHS = 10
 LR = 1e-6
-BATCH_SIZE = 4
-BASE_PATH = './bert-base-chinese'
+BATCH_SIZE = 64
+BASE_PATH = './chinese-lert-large'
 
 
 train_data = []
@@ -43,5 +43,5 @@ def augmentation_func(data):
   return data
 
 
-model = BertClassifier()
+model = BertClassifier(BASE_PATH)
 train(model, train_data, val_data, LR, EPOCHS, BATCH_SIZE, augmentation_func)

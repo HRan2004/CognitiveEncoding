@@ -23,50 +23,67 @@ user_prompt = '''
 然后请你输出给我的文本，按照原文的换行格式仍然每一行一一对应，并保留序号，这样我好找到你修改的部分。
 
 注意你不需要根据语义去换行，请按照原文的文字在哪换行进行换行。
-不要说缺少信息，无实意，或输出任何括号以及内部解释内容，你只要尽力大胆猜测即可，但必须和原文有关，不能全自己编。
+不要说缺少信息，无实意。不要输出任何解释无法处理的话，你只要尽力大胆猜测即可，但要和原文有关。
+
 
 你的格式应该是这样的：
 内容概述：xxxxxx
 
 1. xxxxx
 ....
-20. xxxxx
+[SENTENCES_LENGTH]. xxxxx
 '''
 
 
 source_file_path = './clean/all_data.xlsx'
-df = pd.read_excel(source_file_path)
+df = pd.read_excel(source_file_path, index_col=0)
 df = df.assign(clean=lambda x: x['clean'] if 'clean' in x.columns else '')
 
 
-def clean_sentences(sentences, before):
+def clean_sentences(lines, before):
   global user_prompt
-  prompt = user_prompt.replace('[SENTENCES]', sentences)
+  prompt = user_prompt.replace('[SENTENCES]', '\n'.join(lines))
   prompt = prompt.replace('[BEFORE]', before)
-  print(user_prompt, end='\n\n\n')
+  prompt = prompt.replace('[SENTENCES_LENGTH]', str(len(lines)))
+  print('\nPROMPT:')
+  print(prompt, end='\n\n\n')
+  print('RESULT:\n')
   result_text = call_gpt4(prompt)
+  describe = ''
+  infos = []
   results = []
-  for i in range(1, num + 1):
+  if '内容概述：' in result_text:
+    describe = result_text.split(f'内容概述：')[1].split(f'\n')[0].strip()
+  for i in range(1, len(lines) + 1):
     if f'\n{i}.' in result_text:
       result = result_text.split(f'\n{i}.')[1].split(f'\n')[0].strip()
+      info = ''
+      if result[0] == '(' or result[0] == ')':
+        if result[-1] == '（' or result[-1] == '）':
+          info = '[EXPLAIN] ' + result[1:-1]
+          result = ''
       results.append(result)
+      infos.append(info)
     else:
       results.append('')
+      infos.append('[NOTFOUND]')
       print('Result format error')
   print('\n\n\n')
-  return results
+  return results, describe, infos
 
 
 filename = ''
 lines = []
+ris = []
 
 
 def do_current(ri):
-  global lines
+  global lines, ris
+
   print('')
   before = ''
   for bi in range(10):
-    bci = ri - bi - num
+    bci = ri - bi - len(lines)
     if bci < 0:
       if len(before) == 0:
         before = '(无上文，开始上课)'
@@ -81,19 +98,23 @@ def do_current(ri):
   if len(before) == 0:
     print('Warning: Before text not found.')
     before = '(暂无前文参考内容)'
-  print('Before:', before)
+  # print('Before:', before)
 
-  results = clean_sentences('\n'.join(lines), before)
-  # results = ['empty'] * num
-  results_length = len(results)
+  results, describe, infos = clean_sentences(lines, before)
+  # results = ['[RESULT_TEXT]'] * len(lines)
+  # describe = '[DESCRIBE_TEXT]'
+  df.at[ris[0], 'describe'] = describe
   for i, result in enumerate(results):
-    df.at[ri - results_length + i + 1, 'clean'] = result
+    df.at[ris[i], 'clean'] = result
+    df.at[ris[i], 'info'] = infos[i]
   try:
     df.to_excel(source_file_path)
   except Exception as e:
     print('Warning: Save failed.', e)
+
   print('')
   lines = []
+  ris = []
 
 
 for ri, row in df.iterrows():
@@ -106,10 +127,14 @@ for ri, row in df.iterrows():
       do_current(ri)
       print(f"File finished: {filename}\n")
 
-  value = str(len(lines) + 1) + '. ' + str(row['Value'])
+  value = str(row['Value'])
   if len(value) > 0 and value != 'nan':
-    lines.append(value)
-    print(f'Get {ri}:   {value}')
+    li = len(lines) + 1
+    lines.append(str(li) + '. ' + value)
+    ris.append(ri)
+    print(f'Append {li} ({ri}):  {value}')
+  else:
+    row['info'] = '[EMPTY]'
   if len(lines) >= num:
     do_current(ri)
 

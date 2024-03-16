@@ -23,7 +23,8 @@ user_prompt = '''
 然后请你输出给我的文本，按照原文的换行格式仍然每一行一一对应，并保留序号，这样我好找到你修改的部分。
 
 注意你不需要根据语义去换行，请按照原文的文字在哪换行进行换行。
-不要说缺少信息，无实意。不要输出任何解释无法处理的话，你只要尽力大胆猜测即可，但要和原文有关。
+如果无需修改就重复原文，如果有不断重复的文本可能是语音转换时的问题，请修正。
+不要说缺少信息，无实意。不要输出任何解释无法处理的话，你只要尽力大胆猜测他是什么意思即可。
 
 
 你的格式应该是这样的：
@@ -37,7 +38,6 @@ user_prompt = '''
 
 source_file_path = './clean/all_data.xlsx'
 df = pd.read_excel(source_file_path, index_col=0)
-df = df.assign(clean=lambda x: x['clean'] if 'clean' in x.columns else '')
 
 
 def clean_sentences(lines, before):
@@ -128,13 +128,13 @@ for ri, row in df.iterrows():
       print(f"File finished: {filename}\n")
 
   value = str(row['Value'])
-  if len(value) > 0 and value != 'nan':
+  if len(value) > 0 and value != 'nan' and value != 'None':
     li = len(lines) + 1
     lines.append(str(li) + '. ' + value)
     ris.append(ri)
     print(f'Append {li} ({ri}):  {value}')
   else:
-    row['info'] = '[EMPTY]'
+    df.at[ri, 'info'] = '[EMPTY]'
   if len(lines) >= num:
     do_current(ri)
 

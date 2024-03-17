@@ -23,6 +23,7 @@ def call_gpt4(user_prompt, system_prompt='你是个语言能力和逻辑理解�
         print(content, end="")
     if len(text) > 0:
       return text
+    print('')
   except Exception as e:
     print(e)
   return 'ERROR'

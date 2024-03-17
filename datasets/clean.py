@@ -6,6 +6,7 @@ from models.qianwen import call_qwen
 
 
 num = 20
+source_file_path = './clean/all_data.xlsx'
 user_prompt = '''
 下面是一段公开课录音转换的文本，其中部分文本不正确，请你根据你的理解对其进行修改，使语句更加准确连贯，且符合场景。
 注意，语音转换的文本会有大量的问题，请结合全部上下文，并改正。
@@ -36,7 +37,6 @@ user_prompt = '''
 '''
 
 
-source_file_path = './clean/all_data.xlsx'
 df = pd.read_excel(source_file_path, index_col=0)
 
 

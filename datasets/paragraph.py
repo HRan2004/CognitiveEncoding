@@ -1,6 +1,8 @@
 from models.gpt4 import call_gpt4
 
-prompt = '''
+
+num = 20
+user_prompt = '''
 我将会给你一段初中学校公开课的录音转换后的文本，我想要分析出课堂的每个时间段学生正在做什么，需要你帮我给文本分段并分类。
 
 类型一共有四大类，十小类。
@@ -35,4 +37,4 @@ prompt = '''
 第三步，开始按小类进行分段，给出结果，从哪里到哪里，是属于哪一大类的哪一小类，符合该小类的哪一个例子。
 '''
 
-result = call_gpt4(prompt)
+result = call_gpt4(user_prompt)

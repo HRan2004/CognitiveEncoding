@@ -93,7 +93,7 @@ user_prompt_paragraph = '''
 有时候可能所有语句都属于一段，如果类型类似就分做一段就可以。有时候可能只有两三句，这都很正常，放心按照类型分即可。分出多少段都有可能，合理即可。
 例如一整个师生问答环节，一整个仅老师讲课环节，一整个学生交流环节，一整个朗读背诵环节，都应该算做一段。
 同时例如学生突然发表了一句支持或反对意见，有一句提问等，符合上述某个特别的分类，他也应当单独作为一段。
-分段时，请先输出分段序号，及当前段落的课堂环节的小的概括标题，小标题要具体的概括在讨论什么内容，是什么样形式的环节。
+分段时，请先输出分段序号，及当前段落的课堂环节的小的概括标题，小标题内容可以详细一点。
 然后在下一行输出该段全部的原文。注意不要遗漏原文中的任何语句，分段之间应该是紧密连接的。
 
 
@@ -165,6 +165,7 @@ while True:
   result = call_with_print(user_prompt_paragraph.replace('[DATA]', result_lines_text))
 
   paragraphs = []
+  subtitles = []
   paragraph_now = 1
   in_paragraph = False
   for pi, line in enumerate(result.split('\n')):
@@ -172,6 +173,7 @@ while True:
       paragraph_now += 1
       in_paragraph = True
       paragraphs.append([])
+      subtitles.append(line)
     elif len(line.strip()) == 0:
       in_paragraph = False
     elif in_paragraph:
@@ -186,20 +188,29 @@ while True:
     all_text += f'[{li + 1}] {line}\n'
   print(all_text)
 
-  for paragraph in paragraphs_text:
+  for pi, paragraph in enumerate(paragraphs_text):
+    subtitle = subtitles[pi]
     prompt = user_prompt_position.replace('[ALL_TEXT]', all_text)
     prompt = prompt.replace('[DATA]', paragraph)
     while True:
       result = call_with_print(prompt)
       if '[' in result and ']' in result:
         text = result.split('[')[1].split(']')[0]
-        if len(text) > 0 and 0 < int(text) < num + 1:
+        if len(text.strip()) == 0:
+          continue
+        it = int(text)
+        if 0 < it < num + 1:
           if paragraph == paragraphs_text[-1]:
-            progress += int(text) - 1
-            print('Set progress to:', progress, end='\n\n\n')
+            progress += it - 1
+            print('Set progress to:', progress, end='\n\n\n\n')
           else:
-            print('Position result:', text, end='\n\n\n')
-            df.at[progress + int(text) - 1, 'paragraph'] = paragraph
+            print('Position result:', text, end='\n\n\n\n')
+            df.at[progress + it - 1, 'paragraph'] = paragraph
+            df.at[progress + it - 1, 'subtitle'] = subtitle
+            try:
+              df.to_excel(source_file_path)
+            except:
+              print('Warning: save error')
           break
-  break
+
 

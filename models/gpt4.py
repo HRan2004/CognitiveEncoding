@@ -14,6 +14,8 @@ def call_gpt4(user_prompt, system_prompt='你是个语言能力和逻辑理解�
       model="gpt-4-turbo-preview",
       messages=messages,
       stream=True,
+      temperature=0.2,
+      top_p=0.2,
     )
     text = ''
     for chunk in stream:

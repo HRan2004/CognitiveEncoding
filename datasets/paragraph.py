@@ -2,7 +2,7 @@ from models.gpt4 import call_gpt4
 import pandas as pd
 
 num = 20
-start = 189
+start = 285
 source_file_path = './clean/all_data.xlsx'
 user_prompt = '''
 我将会给你一段初中学校公开课的录音转换后的文本，我需要你帮我区分这些话分别是谁说的。
@@ -91,18 +91,21 @@ user_prompt_paragraph = '''
 
 
 请你按课堂各环节帮我进行分段，随后我自己会判断类型。
+一定注意，分类的描述主体是学生，观察学生的行为有什么变化，比如语句全是老师在讲话，那可以推测学生一直在听课，及都是接受，算作一段。
 
-有时候可能所有语句几十句都属于一段，如果类型类似就分做一段就可以。
+分类密度：
+有时候可能所有语句几十句都属于一段，如果类型类似就一起分做一段就可以。
 有时候可能只有两三句，这都很正常，放心按照类型分即可。分出多少段都有可能，合理即可。
+如果学生如果有明显的特殊行为，例如学生突然发表了一句支持或反对意见，有一句提问等，符合上述某个特别的分类，他也应当给他这句及这句相关的话单独作为一段。
+再比如，一直是老师在讲课，也一起算做一段。一直是学生之间在讨论，也一起算作一段，一整个朗读背诵环节等等，同种类型都应该一起算作一段。
+一般来说正常总共分两三段，少则全部属于一段，多则一共四到五段。
 
-例如一整个师生问答环节，一整个仅老师讲课环节，一整个学生交流环节，一整个朗读背诵环节，同种类型都应该一起算做一段。
-学生如果有明显的特殊行为，例如学生突然发表了一句支持或反对意见，有一句提问等，符合上述某个特别的分类，他也应当单独作为一段。
-
-分段时，请先输出分段序号，及当前段落的课堂环节的小的概括标题，小标题比如：问答环节老师向学生提问来复习蒸汽机原理相关的知识点。
+分段时，请先输出分段序号，及当前段落的课堂环节的小的概括标题，小标题比如：老师向学生提问来复习蒸汽机原理相关的知识点的问答环节。
 然后在下一行输出该段全部的原文。注意不要遗漏原文中的任何语句，分段之间应该是紧密连接的。
 
 
 严格按照以下格式回答我：
+
 内容概述：（整体概括这段讲了什么）
 
 1. （小标题）
@@ -137,7 +140,6 @@ user_prompt_position = '''
 
 
 df = pd.read_excel(source_file_path, index_col=0)
-
 rows = list(df.iterrows())
 
 
@@ -150,22 +152,36 @@ def call_with_print(prompt):
   return result
 
 
+def add_position(it, subtitle, paragraph):
+  print('Position result:', it, end='\n\n\n\n')
+  df.at[progress + it - 1, 'subtitle'] = subtitle
+  df.at[progress + it - 1, 'paragraph'] = paragraph
+  try:
+    df.to_excel(source_file_path)
+  except:
+    print('Warning: save error')
+
+
 progress = start
 while True:
   lines = []
   group_filename = ''
   for i in range(num):
     ri = progress + i
-    filename = df.at[ri, 'filename']
+    filename = df.at[ri, 'from']
     if i == 0:
       group_filename = filename
-    else:
+    elif filename != group_filename:
       break
     line = df.at[ri, 'clean']
     df.at[ri, 'subtitle'] = ''
     df.at[ri, 'paragraph'] = ''
     lines.append(line)
     print(f'Append {len(lines)} ({ri}):  {line}')
+
+  if len(lines) < 2:
+    progress += len(lines)
+    continue
 
   result = call_with_print(user_prompt.replace('[DATA]', ' '.join(lines)))
   result_lines = []
@@ -214,16 +230,14 @@ while True:
         it = int(text)
         if 0 < it < len(lines) + 1:
           if paragraph == paragraphs_text[-1]:
-            progress += it - 1
+            if len(paragraphs_text) < 2:
+              progress += len(lines)
+              add_position(it, subtitle, paragraph)
+            else:
+              progress += it - 1
             print('Set progress to:', progress, end='\n\n\n\n')
           else:
-            print('Position result:', text, end='\n\n\n\n')
-            df.at[progress + it - 1, 'subtitle'] = subtitle
-            df.at[progress + it - 1, 'paragraph'] = paragraph
-            try:
-              df.to_excel(source_file_path)
-            except:
-              print('Warning: save error')
+            add_position(it, subtitle, paragraph)
           break
 
 

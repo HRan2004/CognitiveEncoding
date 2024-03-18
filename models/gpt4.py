@@ -1,8 +1,9 @@
 from openai import OpenAI
 
 client = OpenAI(
-  api_key="sk-GP24CxnWGtJass1sC98657B71343418780FeE06d7b0a00Bb",
-  base_url="https://api.gpts.vin/v1",
+  api_key="sk-oBLj3xZQyhEnmWgS2eDc0991Df0341D5AdF235E6Ba22BbBd",
+  base_url="https://api.pumpkinaigc.online/v1",
+  timeout=60,
 )
 
 
@@ -14,6 +15,7 @@ def call_gpt4(user_prompt, system_prompt='你是个语言能力和逻辑理解�
       model="gpt-4-turbo-preview",
       messages=messages,
       stream=True,
+      timeout=60,
     )
     text = ''
     for chunk in stream:

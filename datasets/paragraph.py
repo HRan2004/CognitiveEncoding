@@ -2,7 +2,7 @@ from models.gpt4 import call_gpt4
 import pandas as pd
 
 num = 20
-start = 285
+start = 806
 source_file_path = './clean/all_data.xlsx'
 user_prompt = '''
 我将会给你一段初中学校公开课的录音转换后的文本，我需要你帮我区分这些话分别是谁说的。
@@ -147,9 +147,14 @@ def call_with_print(prompt):
   print('Prompt:', end='\n\n')
   print(prompt, end='\n\n')
   print('Result:', end='\n\n')
-  result = call_gpt4(prompt)
+  call_result = ''
+  for i in range(1000):
+    call_result = call_gpt4(prompt)
+    if call_result != 'ERROR':
+      break
+    print('\nTry Again', i, end='\n\n')
   print('\n\n\n')
-  return result
+  return call_result
 
 
 def add_position(it, subtitle, paragraph):
@@ -158,6 +163,7 @@ def add_position(it, subtitle, paragraph):
   df.at[progress + it - 1, 'paragraph'] = paragraph
   try:
     df.to_excel(source_file_path)
+    print('Save success')
   except:
     print('Warning: save error')
 
@@ -173,7 +179,9 @@ while True:
       group_filename = filename
     elif filename != group_filename:
       break
-    line = df.at[ri, 'clean']
+    line = str(df.at[ri, 'clean'])
+    if line == 'nan':
+      line = ''
     df.at[ri, 'subtitle'] = ''
     df.at[ri, 'paragraph'] = ''
     lines.append(line)
